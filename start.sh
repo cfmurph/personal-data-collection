@@ -12,6 +12,8 @@ cd ../..
 
 echo "Starting React web frontend on port 5173..."
 cd apps/web
+# Clean install to avoid stale platform-specific native binaries (e.g. rolldown)
+rm -rf node_modules
 npm install -q
 npm run dev &
 WEB_PID=$!
