@@ -12,6 +12,9 @@ venv/
 node_modules/
 dist/
 .vite/
+# Never commit lock files — native binary paths are platform-specific
+package-lock.json
+yarn.lock
 
 # OS
 .DS_Store
