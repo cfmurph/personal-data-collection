@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { DollarSign, Dumbbell, Heart, TrendingUp, Lightbulb, ArrowRight, Plus } from 'lucide-react'
+import { DollarSign, Dumbbell, Heart, TrendingUp, Lightbulb, ArrowRight, Plus, Target } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { getDashboardSummary, type DashboardSummary } from '../api/dashboard'
 import { getInsights, type Insight } from '../api/insights'
+import { getGoals, type BudgetGoal } from '../api/goals'
 import StatCard from '../components/StatCard'
 import InsightCard from '../components/InsightCard'
 import { useAuth } from '../context/AuthContext'
@@ -13,13 +14,15 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [insights, setInsights] = useState<Insight[]>([])
+  const [goals, setGoals] = useState<BudgetGoal[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getDashboardSummary(), getInsights()])
-      .then(([s, i]) => {
+    Promise.all([getDashboardSummary(), getInsights(), getGoals()])
+      .then(([s, i, g]) => {
         setSummary(s.data)
         setInsights(i.data)
+        setGoals(g.data)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -166,6 +169,43 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Budget goals progress */}
+      {goals.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Target size={18} className="text-indigo-500" />
+              <h2 className="font-semibold text-gray-900">Budget Goals</h2>
+            </div>
+            <Link to="/goals" className="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              Manage <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {goals.slice(0, 4).map((goal) => {
+              const over = goal.spent_this_month > goal.monthly_limit
+              const pct = Math.min(goal.percent_used, 100)
+              return (
+                <div key={goal.id}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-700 font-medium">{goal.category}</span>
+                    <span className={over ? 'text-red-600 font-semibold' : 'text-gray-500'}>
+                      ${goal.spent_this_month.toFixed(0)} / ${goal.monthly_limit.toFixed(0)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-1.5 rounded-full transition-all ${over ? 'bg-red-500' : pct >= 80 ? 'bg-amber-400' : 'bg-indigo-500'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Insights preview */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">

@@ -8,6 +8,7 @@ from app.models.habit import HabitEntry
 from app.models.user import User
 from app.schemas.habit import HabitEntryCreate, HabitEntryOut, HabitEntryUpdate
 from app.services.deps import get_current_user
+from app.services.streaks import calculate_streaks
 
 router = APIRouter(prefix="/api/habits", tags=["habits"])
 
@@ -60,6 +61,14 @@ def update_entry(
     db.commit()
     db.refresh(entry)
     return entry
+
+
+@router.get("/streaks")
+def get_streaks(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return calculate_streaks(db, current_user.id)
 
 
 @router.get("/", response_model=list[HabitEntryOut])

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { format, subDays, parseISO } from 'date-fns'
 import { createHabitEntry, updateHabitEntry, getHabitEntries, type HabitEntry } from '../api/habits'
+import { getHabitStreaks, type HabitStreaks } from '../api/goals'
 import toast from 'react-hot-toast'
 import { Heart, Zap, Brain, Save } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import StreakBadge from '../components/StreakBadge'
 
 interface CheckInForm {
   mood: number | null
@@ -18,6 +20,7 @@ export default function HabitsPage() {
   const today = format(new Date(), 'yyyy-MM-dd')
   const [entries, setEntries] = useState<HabitEntry[]>([])
   const [todayEntry, setTodayEntry] = useState<HabitEntry | null>(null)
+  const [streaks, setStreaks] = useState<HabitStreaks | null>(null)
   const [form, setForm] = useState<CheckInForm>({ mood: null, energy: null, focus: null, notes: '' })
   const [saving, setSaving] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -31,14 +34,10 @@ export default function HabitsPage() {
       const te = all.find((e) => e.date === today) || null
       setTodayEntry(te)
       if (te) {
-        setForm({
-          mood: te.mood,
-          energy: te.energy,
-          focus: te.focus,
-          notes: te.notes || '',
-        })
+        setForm({ mood: te.mood, energy: te.energy, focus: te.focus, notes: te.notes || '' })
       }
     })
+    getHabitStreaks().then((res) => setStreaks(res.data))
   }, [refreshKey])
 
   const handleSave = async () => {
@@ -60,7 +59,7 @@ export default function HabitsPage() {
         toast.success('Check-in updated!')
       } else {
         await createHabitEntry(payload)
-        toast.success("Today's check-in saved!")
+        toast.success("Today's check-in saved! 🔥")
       }
       setRefreshKey((k) => k + 1)
     } catch {
@@ -70,7 +69,6 @@ export default function HabitsPage() {
     }
   }
 
-  // Build chart data
   const chartData = [...entries]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({
@@ -82,10 +80,29 @@ export default function HabitsPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Daily Habits</h1>
-        <p className="text-gray-500 text-sm mt-1">Track your mood, energy, and focus each day</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Daily Habits</h1>
+          <p className="text-gray-500 text-sm mt-1">Track your mood, energy, and focus each day</p>
+        </div>
+        {streaks && streaks.current_streak > 0 && (
+          <StreakBadge
+            current={streaks.current_streak}
+            best={streaks.best_streak}
+            total={streaks.total_logged_days}
+          />
+        )}
       </div>
+
+      {/* Streak card */}
+      {streaks && streaks.total_logged_days > 0 && (
+        <StreakBadge
+          current={streaks.current_streak}
+          best={streaks.best_streak}
+          total={streaks.total_logged_days}
+          size="lg"
+        />
+      )}
 
       {/* Daily check-in */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -96,27 +113,24 @@ export default function HabitsPage() {
           </h2>
           {todayEntry && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-              Logged
+              ✓ Logged
             </span>
           )}
         </div>
 
         <div className="space-y-6">
-          {/* Mood */}
           <MetricRating
             label="Mood"
             icon={<Heart size={16} className="text-pink-500" />}
             value={form.mood}
             onChange={(v) => setForm({ ...form, mood: v })}
           />
-          {/* Energy */}
           <MetricRating
             label="Energy"
             icon={<Zap size={16} className="text-amber-500" />}
             value={form.energy}
             onChange={(v) => setForm({ ...form, energy: v })}
           />
-          {/* Focus */}
           <MetricRating
             label="Focus"
             icon={<Brain size={16} className="text-indigo-500" />}
@@ -124,7 +138,6 @@ export default function HabitsPage() {
             onChange={(v) => setForm({ ...form, focus: v })}
           />
 
-          {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
             <textarea
