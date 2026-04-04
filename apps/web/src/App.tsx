@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
+import OnboardingWizard from './components/OnboardingWizard'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
@@ -10,9 +12,17 @@ import FitnessPage from './pages/FitnessPage'
 import HabitsPage from './pages/HabitsPage'
 import InsightsPage from './pages/InsightsPage'
 import DataPage from './pages/DataPage'
+import GoalsPage from './pages/GoalsPage'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+const ONBOARDING_KEY = 'pdh_onboarding_complete'
+
+// Wraps all authenticated pages — handles loading, auth check, and onboarding
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const [onboardingDone, setOnboardingDone] = useState(
+    () => localStorage.getItem(ONBOARDING_KEY) === 'done'
+  )
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -21,12 +31,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
   if (!user) return <Navigate to="/login" replace />
-  return <Layout>{children}</Layout>
+
+  return (
+    <Layout>
+      {!onboardingDone && (
+        <OnboardingWizard
+          onComplete={() => {
+            localStorage.setItem(ONBOARDING_KEY, 'done')
+            setOnboardingDone(true)
+          }}
+        />
+      )}
+      {children}
+    </Layout>
+  )
 }
 
-function AppRoutes() {
+function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -34,18 +56,23 @@ function AppRoutes() {
       </div>
     )
   }
+  if (user) return <Navigate to="/dashboard" replace />
+  return <>{children}</>
+}
 
+function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-      <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
-      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/finance" element={<ProtectedRoute><FinancePage /></ProtectedRoute>} />
-      <Route path="/fitness" element={<ProtectedRoute><FitnessPage /></ProtectedRoute>} />
-      <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
-      <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
-      <Route path="/data" element={<ProtectedRoute><DataPage /></ProtectedRoute>} />
-      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+      <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/dashboard" element={<AuthenticatedLayout><DashboardPage /></AuthenticatedLayout>} />
+      <Route path="/finance" element={<AuthenticatedLayout><FinancePage /></AuthenticatedLayout>} />
+      <Route path="/fitness" element={<AuthenticatedLayout><FitnessPage /></AuthenticatedLayout>} />
+      <Route path="/habits" element={<AuthenticatedLayout><HabitsPage /></AuthenticatedLayout>} />
+      <Route path="/goals" element={<AuthenticatedLayout><GoalsPage /></AuthenticatedLayout>} />
+      <Route path="/insights" element={<AuthenticatedLayout><InsightsPage /></AuthenticatedLayout>} />
+      <Route path="/data" element={<AuthenticatedLayout><DataPage /></AuthenticatedLayout>} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Lightbulb,
+  Target,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -18,6 +19,7 @@ const navItems = [
   { to: '/finance', label: 'Finance', icon: TrendingUp },
   { to: '/fitness', label: 'Fitness', icon: Dumbbell },
   { to: '/habits', label: 'Habits', icon: Heart },
+  { to: '/goals', label: 'Goals', icon: Target },
   { to: '/insights', label: 'Insights', icon: Lightbulb },
   { to: '/data', label: 'Data', icon: Database },
 ]

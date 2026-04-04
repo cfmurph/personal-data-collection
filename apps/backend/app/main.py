@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 # Import all models so SQLAlchemy registers them before create_all
 import app.models  # noqa: F401
-from app.routers import auth, dashboard, data_sources, finance, fitness, habits, insights, jobs
+from app.routers import auth, dashboard, data_sources, finance, fitness, goals, habits, insights, jobs
 
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
@@ -30,6 +30,7 @@ app.include_router(habits.router)
 app.include_router(insights.router)
 app.include_router(dashboard.router)
 app.include_router(data_sources.router)
+app.include_router(goals.router)
 app.include_router(jobs.router)
 
 
